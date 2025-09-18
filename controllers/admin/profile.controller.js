@@ -55,10 +55,11 @@ export async function getProfiles(req, res) {
       return {
         ...p,
         profilePicture: driveId
-          ? `http://localhost:5500/api/v1/google-image/${driveId}`
+          ? `${process.env.SERVER_URL}/api/v1/google-image/${driveId}`
           : null,
       };
     });
+    
 
     res.json({ total, page: Number(page), limit: Number(limit), profiles });
   } catch (err) {
@@ -222,7 +223,7 @@ export async function getProfileById(req, res) {
       const match = profilePic.match(/id=([a-zA-Z0-9_-]+)/);
       const driveId = match ? match[1] : null;
       mainPic = driveId
-        ? `http://localhost:5500/api/v1/google-image/${driveId}`
+        ? `${process.env.SERVER_URL}/api/v1/google-image/${driveId}`
         : profilePic;
     }
 
@@ -234,7 +235,7 @@ export async function getProfileById(req, res) {
         return {
           id: ph.id,
           url: driveId
-            ? `http://localhost:5500/api/v1/google-image/${driveId}`
+            ? `${process.env.SERVER_URL}/api/v1/google-image/${driveId}`
             : ph.url,
         };
       }) || [];

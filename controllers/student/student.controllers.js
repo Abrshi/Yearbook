@@ -125,7 +125,7 @@ export async function getMyProfileWithPhotos(req, res) {
       return {
         ...ph,
         url: driveId
-          ? `http://localhost:5500/api/v1/google-image/${driveId}`
+          ? `${process.env.SERVER_URL}/api/v1/google-image/${driveId}`
           : ph.url,
       };
     });
@@ -166,7 +166,7 @@ export async function getProfilesOverview(req, res) {
       return {
         ...p,
         profilePicture: driveId
-          ? `http://localhost:5500/api/v1/google-image/${driveId}`
+          ? `${process.env.SERVER_URL}/api/v1/google-image/${driveId}`
           : p.profilePicture,
       };
     });
@@ -205,7 +205,7 @@ export async function getProfileDetails(req, res) {
       return {
         ...ph,
         url: driveId
-          ? `http://localhost:5500/api/v1/google-image/${driveId}`
+          ? `${process.env.SERVER_URL}/api/v1/google-image/${driveId}`
           : ph.url,
       };
     });
