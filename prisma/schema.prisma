@@ -1,0 +1,200 @@
+// ========================
+// Digital Yearbook Schema
+// ========================
+
+datasource db {
+  provider = "postgresql" // or "mysql" / "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------- ENUMS --------
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum UserRole {
+  STUDENT
+  CLASS_REP
+  DEPARTMENT_HEAD
+  STUDENT_UNION
+  ADMIN
+  SYSTEM_OWNER
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PREMIUM
+}
+
+// -------- MODELS --------
+
+// ========== User / Student ==========
+model User {
+  id             Int                  @id @default(autoincrement())
+  fullName       String
+  email          String               @unique
+  passwordHash   String
+  role           UserRole             @default(STUDENT)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  profile        UserProfile?
+  photos         Photo[]              // 👈 multiple photos for one user
+  approvals      ApprovalHistory[]    @relation("Approver")
+  notifications  Notification[]
+  subscriptions  PremiumSubscription[]
+  qrShares       QRShare[]            @relation("UserShares")
+  sessions       Session[]
+  classRep       ClassRepresentative?
+  headedDepartments Department[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id             Int             @id @default(autoincrement())
+  userId         Int             @unique
+  department     Department?     @relation("UserDepartment", fields: [departmentId], references: [id])
+  departmentId   Int?
+  graduationYear Int?
+  batch          Int
+  profileQuote   String?
+  description    String?
+  profilePicture String?
+  approvalStatus ApprovalStatus  @default(PENDING)
+  createdAt      DateTime        @default(now())  
+
+  user           User            @relation(fields: [userId], references: [id])
+
+  @@map("user_profiles")
+}
+
+
+model Photo {
+  id        Int      @id @default(autoincrement())
+  url       String   // store image URL or path
+  userId    Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("photos")
+  approvals ApprovalHistory[]
+}
+
+//===========Session ==========
+model Session {
+  id           Int    @id @default(autoincrement())
+  userId       Int
+  refreshToken String
+  user         User   @relation(fields: [userId], references: [id])
+}
+// ========== Department ==========
+
+model Department {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String?
+  
+  createdAt  DateTime @default(now())
+
+  profiles    UserProfile[]  @relation("UserDepartment")
+  classReps  ClassRepresentative[]
+  headId     Int?                // FK column
+  head       User? @relation(fields: [headId], references: [id])
+
+  @@map("departments")
+}
+// ========== Class Representative ==========
+model ClassRepresentative {
+  id             Int        @id @default(autoincrement())
+  user           User       @relation(fields: [userId], references: [id])
+  userId         Int        @unique
+  department     Department @relation(fields: [departmentId], references: [id])
+  departmentId   Int
+  approvedByDept Boolean    @default(false)
+  status         String     @default("ACTIVE")
+}
+
+// ========== Photo ==========
+// model Photo {
+//   id             Int              @id @default(autoincrement())
+//   student        User             @relation(fields: [studentId], references: [id])
+//   studentId      Int
+//   fileUrl        String
+//   caption        String?
+//   approvalStatus ApprovalStatus   @default(PENDING)
+//   uploadedAt     DateTime         @default(now())
+
+//   approvals      ApprovalHistory[]
+// }
+
+model ApprovalHistory {
+  id           Int            @id @default(autoincrement())
+  entityType   String
+  entityId     Int
+  action       ApprovalStatus
+  approvedBy   User           @relation("Approver", fields: [approvedById], references: [id])
+  approvedById Int
+  comments     String?
+  timestamp    DateTime       @default(now())
+
+  photoId Int?
+  photo   Photo ?         @relation(fields: [photoId], references: [id])
+}
+
+// ========== Notification ==========
+model Notification {
+  id          Int      @id @default(autoincrement())
+  recipient   User     @relation(fields: [recipientId], references: [id])
+  recipientId Int
+  message     String
+  status      String   @default("UNREAD")
+  createdAt   DateTime @default(now())
+}
+
+// ========== Yearbook Batch ==========
+// model YearbookBatch {
+//   id           Int          @id @default(autoincrement())
+//   name         String
+//   department   Department?  @relation(fields: [departmentId], references: [id])
+//   departmentId Int?
+//   createdAt    DateTime     @default(now())
+
+//   members      User[]       @relation("BatchMembers")
+//   qrShares     QRShare[]
+// }
+
+// ========== Premium Subscription ==========
+model PremiumSubscription {
+  id               Int              @id @default(autoincrement())
+  student          User             @relation(fields: [studentId], references: [id])
+  studentId        Int
+  plan             SubscriptionPlan @default(BASIC)
+  status           String           @default("ACTIVE")
+  paymentReference String?
+  startedAt        DateTime         @default(now())
+  expiresAt        DateTime?
+}
+
+model QRShare {
+  id          Int      @id @default(autoincrement())
+  entityType  String
+  entityId    Int
+  url         String
+  expiryDate  DateTime?
+  createdAt   DateTime @default(now())
+
+  owner   User?          @relation("UserShares", fields: [ownerId], references: [id])
+  ownerId Int?
+
+  // batch   YearbookBatch? @relation(fields: [batchId], references: [id])
+  // batchId Int?
+}
